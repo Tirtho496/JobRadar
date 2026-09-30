@@ -1,0 +1,26 @@
+# Public example profile. Replace locally with your own candidate configuration.
+name: Example Candidate
+headline: Software and Machine Learning Engineer
+experience_level: configurable
+commercial_experience_years: 0
+summary: >-
+  Example candidate profile used only to demonstrate JobRadar configuration.
+  Replace this file locally with your own skills, role preferences and constraints.
+preferred_roles:
+  - software engineer
+  - machine learning engineer
+  - data engineer
+skills:
+  - Python
+  - SQL
+  - Docker
+  - Git
+domain_strengths:
+  - software engineering
+  - machine learning
+constraints:
+  max_required_years: 2
+  borderline_required_years: 3
+  reject_senior_titles: true
+  require_english_compatible: false
+  allow_local_language_optional: true

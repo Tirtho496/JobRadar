@@ -1,0 +1,39 @@
+# Public example source configuration. Enable only sources relevant to your own search.
+public_sources:
+  platsbanken:
+    enabled: false
+    country: Sweden
+    search_terms: []
+  jobbnorge:
+    enabled: false
+    country: Norway
+  jobopportunities:
+    enabled: true
+    countries:
+      "DE": Germany
+    search_terms:
+      - software engineer
+      - data engineer
+  arbeitnow:
+    enabled: true
+    countries: [Germany]
+  jobicy:
+    enabled: true
+    countries: [Germany]
+  remotive:
+    enabled: true
+    countries: [Germany]
+  remoteok:
+    enabled: true
+    countries: [Germany]
+ats:
+  lever: true
+  greenhouse: true
+  smartrecruiters: true
+optional_sources:
+  job_market_finland:
+    enabled: false
+    reason: Official retrieval API requires organisational onboarding and credentials.
+  nav_arbeidsplassen:
+    enabled: false
+    reason: Public feed access requires additional token configuration.

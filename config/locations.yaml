@@ -1,0 +1,8 @@
+# Public example geography. Replace locally with the countries/cities you want to track.
+countries:
+  Germany:
+    code: "DE"
+    cities: [Berlin, Munich]
+    local_languages: [German]
+    aliases: [Deutschland]
+remote_eu: true

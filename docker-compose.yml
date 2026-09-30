@@ -1,0 +1,50 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-jobradar}
+      POSTGRES_USER: ${POSTGRES_USER:-jobradar}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-jobradar}
+    volumes:
+      - jobradar_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-jobradar} -d ${POSTGRES_DB:-jobradar}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build: ./backend
+    ports:
+      - "127.0.0.1:8000:8000"
+    env_file: .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://jobradar:jobradar@db:5432/jobradar}
+      CONFIG_DIR: /app/config
+      DATA_DIR: /app/data
+    volumes:
+      - ${CONFIG_DIR_HOST:-./config}:/app/config:ro
+      - ${DATA_DIR_HOST:-./data}:/app/data
+      - hf_cache:/root/.cache/huggingface
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  frontend:
+    build: ./frontend
+    environment:
+      API_KEY: ${API_KEY:-jobradar-local}
+    ports:
+      - "8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  jobradar_db:
+  hf_cache:
