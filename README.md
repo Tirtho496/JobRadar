@@ -77,7 +77,7 @@ See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the design rationale.
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/tirtho496/jobradar.git
+git clone https://github.com/Tirtho496/JobRadar.git
 cd jobradar
 ```
 
