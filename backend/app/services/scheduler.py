@@ -21,7 +21,9 @@ def start_scheduler() -> None:
         return
     scheduler.add_job(
         scheduled_ingestion,
-        CronTrigger(hour=settings.daily_ingest_hour, minute=settings.daily_ingest_minute, timezone=settings.app_timezone),
+        CronTrigger(
+            hour=settings.daily_ingest_hour, minute=settings.daily_ingest_minute, timezone=settings.app_timezone
+        ),
         id="daily_ingestion",
         replace_existing=True,
         max_instances=1,

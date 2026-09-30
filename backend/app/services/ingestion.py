@@ -33,7 +33,18 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 _ingest_lock = asyncio.Lock()
 
-SOURCE_PRIORITY = {"greenhouse": 5, "lever": 5, "smartrecruiters": 5, "platsbanken": 4, "jobbnorge": 4, "jobopportunities": 3, "arbeitnow": 2, "jobicy": 2, "remotive": 2, "remoteok": 1}
+SOURCE_PRIORITY = {
+    "greenhouse": 5,
+    "lever": 5,
+    "smartrecruiters": 5,
+    "platsbanken": 4,
+    "jobbnorge": 4,
+    "jobopportunities": 3,
+    "arbeitnow": 2,
+    "jobicy": 2,
+    "remotive": 2,
+    "remoteok": 1,
+}
 
 
 @dataclass(slots=True)
@@ -61,18 +72,34 @@ def infer_geography(raw: RawJob) -> tuple[str | None, str | None]:
     if not raw.location.strip():
         for country, cfg in locations.countries.items():
             city_match = next((city for city in cfg.cities if normalize_text(city) in fallback_text), None)
-            aliases = [normalize_text(country), normalize_text(cfg.code), *(normalize_text(alias) for alias in cfg.aliases)]
+            aliases = [
+                normalize_text(country),
+                normalize_text(cfg.code),
+                *(normalize_text(alias) for alias in cfg.aliases),
+            ]
             if city_match or any(f" {alias} " in fallback_text for alias in aliases if alias):
                 return country, city_match
     if raw.remote:
         haystack = f" {normalize_text(f'{raw.location} {raw.description[:700]}')} "
         worldwide = any(token in haystack for token in ("worldwide", "anywhere", "global remote"))
-        excluded_only = any(token in haystack for token in (
-            "united states only", "us only", "usa only", "north america only", "canada only",
-            "latin america only", "australia only", "india only", "apac only"
-        ))
+        excluded_only = any(
+            token in haystack
+            for token in (
+                "united states only",
+                "us only",
+                "usa only",
+                "north america only",
+                "canada only",
+                "latin america only",
+                "australia only",
+                "india only",
+                "apac only",
+            )
+        )
         europe_signal = any(token in haystack for token in ("europe", "european", "emea", "eu remote", "europe only"))
-        disallowed_region = any(token in haystack for token in ("united states", " usa ", "canada", "australia", "india"))
+        disallowed_region = any(
+            token in haystack for token in ("united states", " usa ", "canada", "australia", "india")
+        )
         if worldwide or europe_signal or ("remote" in haystack and not excluded_only and not disallowed_region):
             return "EU Remote", None
     return None, None
@@ -90,7 +117,6 @@ def prepare_job(raw: RawJob) -> PreparedJob | None:
     country, city = infer_geography(raw)
     if not country:
         return None
-    profile = get_profile()
     locations = get_locations()
     language = classify_language(raw.description, country if country != "EU Remote" else "", locations)
     seniority = detect_seniority(raw.title, raw.description)
@@ -119,12 +145,14 @@ class FeedbackPreferences:
 
 async def _load_feedback_preferences() -> FeedbackPreferences:
     async with SessionLocal() as session:
-        rows = (await session.execute(
-            select(Feedback.useful, Job.role_family, Job.skills)
-            .join(Job, Feedback.job_id == Job.id)
-            .order_by(Feedback.created_at.desc())
-            .limit(250)
-        )).all()
+        rows = (
+            await session.execute(
+                select(Feedback.useful, Job.role_family, Job.skills)
+                .join(Job, Feedback.job_id == Job.id)
+                .order_by(Feedback.created_at.desc())
+                .limit(250)
+            )
+        ).all()
     if len(rows) < 3:
         return FeedbackPreferences({}, {}, len(rows))
     role_sum: dict[str, float] = defaultdict(float)
@@ -161,18 +189,27 @@ def _embedding_candidate(item: PreparedJob) -> bool:
         return False
     if item.language_status == "LOCAL_OPTIONAL" and not profile.constraints.allow_local_language_optional:
         return False
-    if item.language_status == "UNCLEAR" and profile.constraints.require_english_compatible and not settings.allow_unclear_language:
+    if (
+        item.language_status == "UNCLEAR"
+        and profile.constraints.require_english_compatible
+        and not settings.allow_unclear_language
+    ):
         return False
     if item.experience.minimum is not None:
         max_req = item.experience.maximum if item.experience.maximum is not None else item.experience.minimum
         if item.experience.minimum > profile.constraints.borderline_required_years:
             return False
-        if item.experience.minimum >= profile.constraints.max_required_years and max_req > profile.constraints.borderline_required_years:
+        if (
+            item.experience.minimum >= profile.constraints.max_required_years
+            and max_req > profile.constraints.borderline_required_years
+        ):
             return False
     return True
 
 
-async def _process_source(collector: BaseCollector, semaphore: asyncio.Semaphore, preferences: FeedbackPreferences) -> dict:
+async def _process_source(
+    collector: BaseCollector, semaphore: asyncio.Semaphore, preferences: FeedbackPreferences
+) -> dict:
     async with semaphore:
         started = time.perf_counter()
         async with SessionLocal() as session:
@@ -196,7 +233,10 @@ async def _process_source(collector: BaseCollector, semaphore: asyncio.Semaphore
                     vectors = await asyncio.to_thread(embedding_service.encode, texts)
                     if vectors:
                         profile_vector = np.asarray(vectors[0])
-                        vector_by_index = {original_index: vector for (original_index, _), vector in zip(embedding_items, vectors[1:])}
+                        vector_by_index = {
+                            original_index: vector
+                            for (original_index, _), vector in zip(embedding_items, vectors[1:], strict=True)
+                        }
 
                 for index, item in enumerate(prepared):
                     semantic_score = 0.0 if not _embedding_candidate(item) else None
@@ -223,10 +263,14 @@ async def _process_source(collector: BaseCollector, semaphore: asyncio.Semaphore
                     external_id = item.raw.source_job_id
                     if len(external_id) > 240:
                         external_id = hashlib.sha256(external_id.encode("utf-8")).hexdigest()
-                    existing = await session.scalar(select(Job).where(Job.source == item.raw.source, Job.source_job_id == external_id))
+                    existing = await session.scalar(
+                        select(Job).where(Job.source == item.raw.source, Job.source_job_id == external_id)
+                    )
                     duplicate = None
                     if not existing:
-                        duplicate = await session.scalar(select(Job).where(Job.content_hash == job_hash).order_by(Job.id.asc()))
+                        duplicate = await session.scalar(
+                            select(Job).where(Job.content_hash == job_hash).order_by(Job.id.asc())
+                        )
                     if duplicate and duplicate.source != item.raw.source:
                         sources = set(duplicate.duplicate_sources or [])
                         sources.add(item.raw.source)
@@ -299,15 +343,15 @@ async def _process_source(collector: BaseCollector, semaphore: asyncio.Semaphore
                     run.finished_at = datetime.now(UTC)
                     run.latency_ms = round((time.perf_counter() - started) * 1000, 2)
                     await session.commit()
-                return {
-                    "source": collector.name,
-                    "status": run.status if run else "FAILED",
-                    "fetched": run.fetched if run else 0,
-                    "inserted": run.inserted if run else 0,
-                    "eligible": run.eligible if run else 0,
-                    "rejected": run.rejected if run else 0,
-                    "duplicates": run.duplicates if run else 0,
-                }
+            return {
+                "source": collector.name,
+                "status": run.status if run else "FAILED",
+                "fetched": run.fetched if run else 0,
+                "inserted": run.inserted if run else 0,
+                "eligible": run.eligible if run else 0,
+                "rejected": run.rejected if run else 0,
+                "duplicates": run.duplicates if run else 0,
+            }
 
 
 async def cleanup_stale_jobs() -> None:
@@ -333,7 +377,9 @@ async def run_ingestion() -> list[dict]:
         collectors = build_collectors()
         preferences = await _load_feedback_preferences()
         semaphore = asyncio.Semaphore(settings.max_concurrent_sources)
-        results = await asyncio.gather(*(_process_source(collector, semaphore, preferences) for collector in collectors))
+        results = await asyncio.gather(
+            *(_process_source(collector, semaphore, preferences) for collector in collectors)
+        )
         await cleanup_stale_jobs()
         return list(results)
 

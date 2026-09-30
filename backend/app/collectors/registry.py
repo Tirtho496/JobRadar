@@ -3,11 +3,11 @@ from app.collectors.base import BaseCollector
 from app.collectors.public_boards import (
     ArbeitnowCollector,
     JobbnorgeCollector,
-    JobOpportunitiesCollector,
     JobicyCollector,
+    JobOpportunitiesCollector,
     PlatsbankenCollector,
-    RemotiveCollector,
     RemoteOKCollector,
+    RemotiveCollector,
 )
 from app.core.profile import get_companies_config, get_sources_config
 

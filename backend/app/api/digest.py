@@ -3,10 +3,9 @@ from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import and_, desc, or_, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import rate_limit, require_api_key
-from app.db import get_session
+from app.db import SessionDep
 from app.models import Job
 from app.schemas import JobOut
 
@@ -15,9 +14,9 @@ router = APIRouter(prefix="/api/digest", tags=["digest"], dependencies=[Depends(
 
 @router.get("")
 async def digest(
+    session: SessionDep,
     hours: int = Query(default=24, ge=1, le=168),
     per_country: int = Query(default=25, ge=1, le=100),
-    session: AsyncSession = Depends(get_session),
 ) -> dict:
     cutoff = datetime.now(UTC) - timedelta(hours=hours)
     stmt = (

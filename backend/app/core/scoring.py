@@ -6,7 +6,6 @@ from app.core.embedding import EmbeddingService
 from app.core.profile import CandidateProfile
 from app.core.text import normalize_text
 
-
 WEIGHTS = {
     "technical": 0.25,
     "experience": 0.20,
@@ -79,12 +78,18 @@ def score_job(
     role = role_similarity(title, profile)
     exp_score, exp_eligibility, exp_reasons = _experience_score(experience, profile)
     profile_text = f"{profile.headline}. {profile.summary}. Roles: {'; '.join(profile.preferred_roles)}. Skills: {'; '.join(profile.skills)}"
-    semantic = semantic_score if semantic_score is not None else embedding_service.similarity(profile_text, job_text[:5000])
+    semantic = (
+        semantic_score if semantic_score is not None else embedding_service.similarity(profile_text, job_text[:5000])
+    )
     semantic = max(0.0, min(1.0, semantic))
     normalized = normalize_text(job_text)
     domain_hits = [domain for domain in profile.domain_strengths if normalize_text(domain) in normalized]
     domain = min(1.0, 0.25 + 0.2 * len(domain_hits)) if domain_hits else 0.25
-    education = 1.0 if any(term in normalized for term in ("master", "msc", "computer science", "engineering degree", "bachelor")) else 0.8
+    education = (
+        1.0
+        if any(term in normalized for term in ("master", "msc", "computer science", "engineering degree", "bachelor"))
+        else 0.8
+    )
     location_score = 0.9 if country == "EU Remote" else 1.0 if country else 0.2
 
     breakdown = {

@@ -21,7 +21,12 @@ class PlatsbankenCollector(BaseCollector):
                 employer = item.get("employer") or {}
                 address = item.get("workplace_address") or {}
                 description = item.get("description") or {}
-                location_parts = [address.get("city"), address.get("municipality"), address.get("region"), address.get("country")]
+                location_parts = [
+                    address.get("city"),
+                    address.get("municipality"),
+                    address.get("region"),
+                    address.get("country"),
+                ]
                 jobs[job_id] = RawJob(
                     source=self.name,
                     source_job_id=job_id,
@@ -60,19 +65,28 @@ class JobbnorgeCollector(BaseCollector):
             if isinstance(location, dict):
                 location = ", ".join(str(v) for v in location.values() if v)
             description = item.get("description") or item.get("jobDescription") or item.get("ingress") or ""
-            url = item.get("url") or item.get("jobUrl") or item.get("applicationUrl") or f"https://www.jobbnorge.no/en/available-jobs/job/{job_id}"
-            jobs.append(RawJob(
-                source=self.name,
-                source_job_id=job_id,
-                url=url,
-                title=str(title),
-                company=str(employer),
-                location=str(location),
-                description=strip_html(str(description)),
-                date_posted=parse_datetime(item.get("publishedDate") or item.get("publishDate") or item.get("datePublished")),
-                deadline=parse_datetime(item.get("deadline") or item.get("applicationDeadline")),
-                remote="remote" in str(item).lower(),
-            ))
+            url = (
+                item.get("url")
+                or item.get("jobUrl")
+                or item.get("applicationUrl")
+                or f"https://www.jobbnorge.no/en/available-jobs/job/{job_id}"
+            )
+            jobs.append(
+                RawJob(
+                    source=self.name,
+                    source_job_id=job_id,
+                    url=url,
+                    title=str(title),
+                    company=str(employer),
+                    location=str(location),
+                    description=strip_html(str(description)),
+                    date_posted=parse_datetime(
+                        item.get("publishedDate") or item.get("publishDate") or item.get("datePublished")
+                    ),
+                    deadline=parse_datetime(item.get("deadline") or item.get("applicationDeadline")),
+                    remote="remote" in str(item).lower(),
+                )
+            )
         return jobs
 
 
@@ -146,18 +160,20 @@ class ArbeitnowCollector(BaseCollector):
         for page in range(1, 4):
             data = await self.get_json(self.base_url, params={"page": page})
             for item in data.get("data", []):
-                jobs.append(RawJob(
-                    source=self.name,
-                    source_job_id=str(item.get("slug") or item.get("url")),
-                    url=item.get("url") or "",
-                    title=item.get("title") or "Untitled role",
-                    company=item.get("company_name") or "Unknown employer",
-                    location=item.get("location") or ("Remote" if item.get("remote") else ""),
-                    description=strip_html(item.get("description") or ""),
-                    date_posted=parse_datetime(item.get("created_at")),
-                    remote=bool(item.get("remote")),
-                    metadata={"tags": item.get("tags", []), "job_types": item.get("job_types", [])},
-                ))
+                jobs.append(
+                    RawJob(
+                        source=self.name,
+                        source_job_id=str(item.get("slug") or item.get("url")),
+                        url=item.get("url") or "",
+                        title=item.get("title") or "Untitled role",
+                        company=item.get("company_name") or "Unknown employer",
+                        location=item.get("location") or ("Remote" if item.get("remote") else ""),
+                        description=strip_html(item.get("description") or ""),
+                        date_posted=parse_datetime(item.get("created_at")),
+                        remote=bool(item.get("remote")),
+                        metadata={"tags": item.get("tags", []), "job_types": item.get("job_types", [])},
+                    )
+                )
             if not data.get("links", {}).get("next"):
                 break
         return jobs
@@ -170,18 +186,21 @@ class JobicyCollector(BaseCollector):
     async def collect(self) -> list[RawJob]:
         data = await self.get_json(self.base_url, params={"count": 200})
         items = data.get("jobs") or []
-        return [RawJob(
-            source=self.name,
-            source_job_id=str(item.get("id") or item.get("url")),
-            url=item.get("url") or "",
-            title=item.get("jobTitle") or "Untitled role",
-            company=item.get("companyName") or "Unknown employer",
-            location=item.get("jobGeo") or "Remote",
-            description=strip_html(item.get("jobDescription") or item.get("jobExcerpt") or ""),
-            date_posted=parse_datetime(item.get("pubDate")),
-            remote=True,
-            metadata={"job_level": item.get("jobLevel"), "job_type": item.get("jobType")},
-        ) for item in items]
+        return [
+            RawJob(
+                source=self.name,
+                source_job_id=str(item.get("id") or item.get("url")),
+                url=item.get("url") or "",
+                title=item.get("jobTitle") or "Untitled role",
+                company=item.get("companyName") or "Unknown employer",
+                location=item.get("jobGeo") or "Remote",
+                description=strip_html(item.get("jobDescription") or item.get("jobExcerpt") or ""),
+                date_posted=parse_datetime(item.get("pubDate")),
+                remote=True,
+                metadata={"job_level": item.get("jobLevel"), "job_type": item.get("jobType")},
+            )
+            for item in items
+        ]
 
 
 class RemotiveCollector(BaseCollector):
@@ -190,18 +209,21 @@ class RemotiveCollector(BaseCollector):
 
     async def collect(self) -> list[RawJob]:
         data = await self.get_json(self.base_url, params={"limit": 100})
-        return [RawJob(
-            source=self.name,
-            source_job_id=str(item.get("id") or item.get("url")),
-            url=item.get("url") or "",
-            title=item.get("title") or "Untitled role",
-            company=item.get("company_name") or "Unknown employer",
-            location=item.get("candidate_required_location") or "Remote",
-            description=strip_html(item.get("description") or ""),
-            date_posted=parse_datetime(item.get("publication_date")),
-            remote=True,
-            metadata={"category": item.get("category"), "job_type": item.get("job_type")},
-        ) for item in data.get("jobs", [])]
+        return [
+            RawJob(
+                source=self.name,
+                source_job_id=str(item.get("id") or item.get("url")),
+                url=item.get("url") or "",
+                title=item.get("title") or "Untitled role",
+                company=item.get("company_name") or "Unknown employer",
+                location=item.get("candidate_required_location") or "Remote",
+                description=strip_html(item.get("description") or ""),
+                date_posted=parse_datetime(item.get("publication_date")),
+                remote=True,
+                metadata={"category": item.get("category"), "job_type": item.get("job_type")},
+            )
+            for item in data.get("jobs", [])
+        ]
 
 
 class RemoteOKCollector(BaseCollector):
@@ -210,19 +232,27 @@ class RemoteOKCollector(BaseCollector):
 
     async def collect(self) -> list[RawJob]:
         data = await self.get_json(self.base_url)
-        items = data[1:] if isinstance(data, list) and data and "legal" in data[0] else data if isinstance(data, list) else []
+        items = (
+            data[1:]
+            if isinstance(data, list) and data and "legal" in data[0]
+            else data
+            if isinstance(data, list)
+            else []
+        )
         jobs = []
         for item in items[:200]:
-            jobs.append(RawJob(
-                source=self.name,
-                source_job_id=str(item.get("id") or item.get("url")),
-                url=item.get("url") or item.get("apply_url") or "",
-                title=item.get("position") or "Untitled role",
-                company=item.get("company") or "Unknown employer",
-                location=item.get("location") or "Remote",
-                description=strip_html(item.get("description") or ""),
-                date_posted=parse_datetime(item.get("date") or item.get("epoch")),
-                remote=True,
-                metadata={"tags": item.get("tags", [])},
-            ))
+            jobs.append(
+                RawJob(
+                    source=self.name,
+                    source_job_id=str(item.get("id") or item.get("url")),
+                    url=item.get("url") or item.get("apply_url") or "",
+                    title=item.get("position") or "Untitled role",
+                    company=item.get("company") or "Unknown employer",
+                    location=item.get("location") or "Remote",
+                    description=strip_html(item.get("description") or ""),
+                    date_posted=parse_datetime(item.get("date") or item.get("epoch")),
+                    remote=True,
+                    metadata={"tags": item.get("tags", [])},
+                )
+            )
         return jobs

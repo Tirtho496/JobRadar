@@ -8,7 +8,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
 from sqlalchemy import text
 
-from app.api import analytics, digest, ingest, jobs, model_lab, settings as settings_api, summary, system
+from app.api import analytics, digest, ingest, jobs, model_lab, summary, system
+from app.api import settings as settings_api
 from app.config import get_settings
 from app.db import SessionLocal
 from app.logging_config import configure_logging
@@ -49,7 +50,9 @@ async def request_metrics(request: Request, call_next):
             metrics.inc("http_5xx_total")
         return response
     finally:
-        logger.info("request", extra={"path": request.url.path, "latency_ms": round((time.perf_counter() - started) * 1000, 2)})
+        logger.info(
+            "request", extra={"path": request.url.path, "latency_ms": round((time.perf_counter() - started) * 1000, 2)}
+        )
 
 
 @app.get("/health")

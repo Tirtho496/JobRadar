@@ -1,12 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
 from datetime import UTC, datetime, timedelta
 
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import and_, desc, or_, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import rate_limit, require_api_key
 from app.cache import cache
-from app.db import get_session
+from app.db import SessionDep
 from app.models import Feedback, Job
 from app.schemas import FeedbackIn, JobDetail, JobOut, StatusUpdate
 
@@ -15,6 +14,7 @@ router = APIRouter(prefix="/api/jobs", tags=["jobs"], dependencies=[Depends(requ
 
 @router.get("", response_model=list[JobOut])
 async def list_jobs(
+    session: SessionDep,
     country: str | None = None,
     role_family: str | None = None,
     status: str | None = None,
@@ -23,7 +23,6 @@ async def list_jobs(
     new_since_hours: int | None = Query(default=None, ge=1, le=720),
     limit: int = Query(default=100, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
-    session: AsyncSession = Depends(get_session),
 ) -> list[Job]:
     stmt = select(Job).where(Job.is_active.is_(True), Job.eligible.is_(True), Job.fit_score >= min_score)
     if country:
@@ -37,14 +36,18 @@ async def list_jobs(
     if new_since_hours:
         cutoff = datetime.now(UTC) - timedelta(hours=new_since_hours)
         stmt = stmt.where(or_(Job.date_posted >= cutoff, and_(Job.date_posted.is_(None), Job.first_seen_at >= cutoff)))
-    stmt = stmt.order_by(desc(Job.application_value == "HIGH"), desc(Job.fit_score), desc(Job.first_seen_at)).offset(offset).limit(limit)
+    stmt = (
+        stmt.order_by(desc(Job.application_value == "HIGH"), desc(Job.fit_score), desc(Job.first_seen_at))
+        .offset(offset)
+        .limit(limit)
+    )
     return list((await session.scalars(stmt)).all())
 
 
 @router.get("/tracker", response_model=list[JobOut])
 async def application_tracker(
+    session: SessionDep,
     status: str | None = None,
-    session: AsyncSession = Depends(get_session),
 ) -> list[Job]:
     tracked = ("SAVED", "APPLYING", "APPLIED", "INTERVIEW", "REJECTED", "OFFER")
     stmt = select(Job).where(Job.status.in_(tracked))
@@ -57,7 +60,7 @@ async def application_tracker(
 
 
 @router.get("/{job_id}", response_model=JobDetail)
-async def get_job(job_id: int, session: AsyncSession = Depends(get_session)) -> Job:
+async def get_job(job_id: int, session: SessionDep) -> Job:
     job = await session.get(Job, job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -65,7 +68,7 @@ async def get_job(job_id: int, session: AsyncSession = Depends(get_session)) -> 
 
 
 @router.patch("/{job_id}/status", response_model=JobOut)
-async def update_status(job_id: int, payload: StatusUpdate, session: AsyncSession = Depends(get_session)) -> Job:
+async def update_status(job_id: int, payload: StatusUpdate, session: SessionDep) -> Job:
     job = await session.get(Job, job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -77,7 +80,7 @@ async def update_status(job_id: int, payload: StatusUpdate, session: AsyncSessio
 
 
 @router.post("/{job_id}/feedback")
-async def add_feedback(job_id: int, payload: FeedbackIn, session: AsyncSession = Depends(get_session)) -> dict:
+async def add_feedback(job_id: int, payload: FeedbackIn, session: SessionDep) -> dict:
     if not await session.get(Job, job_id):
         raise HTTPException(status_code=404, detail="Job not found")
     feedback = Feedback(job_id=job_id, useful=payload.useful, reason=payload.reason)

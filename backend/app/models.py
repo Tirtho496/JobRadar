@@ -53,8 +53,12 @@ class Job(Base):
     embedding: Mapped[list[float] | None] = mapped_column(Vector(384), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
     first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    last_seen_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
 
     feedback: Mapped[list["Feedback"]] = relationship(back_populates="job", cascade="all, delete-orphan")
 

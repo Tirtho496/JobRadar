@@ -9,21 +9,23 @@ async def test_job_opportunities_mapping():
 
     async def fake_get_json(*args, **kwargs):
         return {
-            "data": [{
-                "id": "abc-123",
-                "title": "Software Engineer",
-                "company": "Example GmbH",
-                "country": "DE",
-                "city": "Berlin",
-                "location": "Berlin",
-                "remote": "hybrid",
-                "posted_at": "2026-09-24T08:00:00Z",
-                "expires_at": "2026-10-15T23:59:59Z",
-                "apply_url": "https://example.com/apply",
-                "source": "workday",
-                "source_type": "ats",
-                "description": "English is the working language. Build Python services.",
-            }]
+            "data": [
+                {
+                    "id": "abc-123",
+                    "title": "Software Engineer",
+                    "company": "Example GmbH",
+                    "country": "DE",
+                    "city": "Berlin",
+                    "location": "Berlin",
+                    "remote": "hybrid",
+                    "posted_at": "2026-09-24T08:00:00Z",
+                    "expires_at": "2026-10-15T23:59:59Z",
+                    "apply_url": "https://example.com/apply",
+                    "source": "workday",
+                    "source_type": "ats",
+                    "description": "English is the working language. Build Python services.",
+                }
+            ]
         }
 
     collector.get_json = fake_get_json  # type: ignore[method-assign]

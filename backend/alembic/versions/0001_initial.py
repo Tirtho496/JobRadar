@@ -4,10 +4,12 @@ Revision ID: 0001
 Revises:
 Create Date: 2026-09-25
 """
-from alembic import op
+
 import sqlalchemy as sa
 from pgvector.sqlalchemy import Vector
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 revision = "0001"
 down_revision = None
@@ -58,12 +60,18 @@ def upgrade() -> None:
         sa.UniqueConstraint("source", "source_job_id", name="uq_job_source_external"),
     )
     for name, columns in [
-        ("ix_jobs_source", ["source"]), ("ix_jobs_country_eligible", ["country", "eligible"]),
-        ("ix_jobs_fit_score", ["fit_score"]), ("ix_jobs_first_seen", ["first_seen_at"]),
-        ("ix_jobs_language_status", ["language_status"]), ("ix_jobs_seniority", ["seniority"]),
-        ("ix_jobs_role_family", ["role_family"]), ("ix_jobs_eligibility", ["eligibility"]),
-        ("ix_jobs_application_value", ["application_value"]), ("ix_jobs_eligible", ["eligible"]),
-        ("ix_jobs_status", ["status"]), ("ix_jobs_content_hash", ["content_hash"]),
+        ("ix_jobs_source", ["source"]),
+        ("ix_jobs_country_eligible", ["country", "eligible"]),
+        ("ix_jobs_fit_score", ["fit_score"]),
+        ("ix_jobs_first_seen", ["first_seen_at"]),
+        ("ix_jobs_language_status", ["language_status"]),
+        ("ix_jobs_seniority", ["seniority"]),
+        ("ix_jobs_role_family", ["role_family"]),
+        ("ix_jobs_eligibility", ["eligibility"]),
+        ("ix_jobs_application_value", ["application_value"]),
+        ("ix_jobs_eligible", ["eligible"]),
+        ("ix_jobs_status", ["status"]),
+        ("ix_jobs_content_hash", ["content_hash"]),
         ("ix_jobs_is_active", ["is_active"]),
     ]:
         op.create_index(name, "jobs", columns)

@@ -52,7 +52,9 @@ class BaseCollector(ABC):
     async def close(self) -> None:
         await self.client.aclose()
 
-    async def get_json(self, url: str, *, params: dict | None = None, headers: dict | None = None, retries: int = 3) -> Any:
+    async def get_json(
+        self, url: str, *, params: dict | None = None, headers: dict | None = None, retries: int = 3
+    ) -> Any:
         last_error: Exception | None = None
         for attempt in range(retries):
             try:
@@ -66,7 +68,7 @@ class BaseCollector(ABC):
             except (httpx.HTTPError, ValueError) as exc:
                 last_error = exc
                 if attempt < retries - 1:
-                    await asyncio.sleep(min(2 ** attempt, 8))
+                    await asyncio.sleep(min(2**attempt, 8))
         raise RuntimeError(f"{self.name} request failed: {last_error}") from last_error
 
     @abstractmethod

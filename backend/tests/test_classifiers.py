@@ -1,9 +1,11 @@
 from app.core.classifiers import classify_language, detect_seniority, extract_experience, extract_skills
 from app.core.profile import CountryConfig, LocationsConfig
 
-LOCATIONS = LocationsConfig(countries={
-    "Germany": CountryConfig(code="DE", cities=["Berlin"], local_languages=["German"], aliases=["Deutschland"]),
-})
+LOCATIONS = LocationsConfig(
+    countries={
+        "Germany": CountryConfig(code="DE", cities=["Berlin"], local_languages=["German"], aliases=["Deutschland"]),
+    }
+)
 
 
 def test_rejects_mandatory_local_language():
@@ -38,5 +40,7 @@ def test_skill_extraction():
 
 
 def test_optional_fluent_local_language_is_not_treated_as_mandatory():
-    result = classify_language("English is our working language. Fluent German is an advantage, not required.", "Germany", LOCATIONS)
+    result = classify_language(
+        "English is our working language. Fluent German is an advantage, not required.", "Germany", LOCATIONS
+    )
     assert result.status == "LOCAL_OPTIONAL"

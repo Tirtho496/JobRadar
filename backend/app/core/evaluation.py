@@ -35,10 +35,20 @@ def evaluate(profile: CandidateProfile, embedding_service: EmbeddingService, dat
     results = []
 
     start = time.perf_counter()
-    lexical_scored = [(lexical_similarity(profile_text, f"{row['title']} {row['description']}"), int(row['relevant'])) for row in rows]
+    lexical_scored = [
+        (lexical_similarity(profile_text, f"{row['title']} {row['description']}"), int(row["relevant"])) for row in rows
+    ]
     lexical_latency = (time.perf_counter() - start) * 1000 / max(len(rows), 1)
     p10, n10 = _metrics(lexical_scored)
-    results.append({"model_name": "lexical-jaccard", "precision_at_10": p10, "ndcg_at_10": n10, "mean_latency_ms": lexical_latency, "notes": "Deterministic fallback baseline"})
+    results.append(
+        {
+            "model_name": "lexical-jaccard",
+            "precision_at_10": p10,
+            "ndcg_at_10": n10,
+            "mean_latency_ms": lexical_latency,
+            "notes": "Deterministic fallback baseline",
+        }
+    )
 
     start = time.perf_counter()
     texts = [profile_text] + [f"{row['title']} {row['description']}" for row in rows]
@@ -47,8 +57,19 @@ def evaluate(profile: CandidateProfile, embedding_service: EmbeddingService, dat
         import numpy as np
 
         base = np.asarray(vectors[0])
-        scored = [(float(np.dot(base, np.asarray(vector))), int(row["relevant"])) for vector, row in zip(vectors[1:], rows)]
+        scored = [
+            (float(np.dot(base, np.asarray(vector))), int(row["relevant"]))
+            for vector, row in zip(vectors[1:], rows, strict=True)
+        ]
         latency = (time.perf_counter() - start) * 1000 / max(len(rows), 1)
         p10, n10 = _metrics(scored)
-        results.append({"model_name": embedding_service.model_name, "precision_at_10": p10, "ndcg_at_10": n10, "mean_latency_ms": latency, "notes": "Local sentence-transformer embedding model"})
+        results.append(
+            {
+                "model_name": embedding_service.model_name,
+                "precision_at_10": p10,
+                "ndcg_at_10": n10,
+                "mean_latency_ms": latency,
+                "notes": "Local sentence-transformer embedding model",
+            }
+        )
     return results

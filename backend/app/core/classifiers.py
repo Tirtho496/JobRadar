@@ -4,10 +4,19 @@ from dataclasses import dataclass
 from app.core.profile import CandidateProfile, LocationsConfig
 from app.core.text import normalize_text
 
-
 SENIOR_TITLE_TERMS = {
-    "senior", "sr", "staff", "principal", "lead", "manager", "director",
-    "head", "chief", "vp", "vice president", "architect"
+    "senior",
+    "sr",
+    "staff",
+    "principal",
+    "lead",
+    "manager",
+    "director",
+    "head",
+    "chief",
+    "vp",
+    "vice president",
+    "architect",
 }
 JUNIOR_TERMS = {"junior", "jr", "graduate", "entry level", "trainee", "intern", "early career"}
 
@@ -108,7 +117,17 @@ def extract_experience(text: str) -> ExperienceRequirement:
         if not any(str(int(number)) in pair for pair in ranges):
             values.append((number, number))
     if not values:
-        if any(term in t for term in ("no experience required", "recent graduate", "new graduate", "entry level", "graduate programme", "graduate program")):
+        if any(
+            term in t
+            for term in (
+                "no experience required",
+                "recent graduate",
+                "new graduate",
+                "entry level",
+                "graduate programme",
+                "graduate program",
+            )
+        ):
             return ExperienceRequirement(0.0, 1.0, True)
         return ExperienceRequirement(None, None, False)
     minimum = min(v[0] for v in values)
@@ -143,10 +162,12 @@ def classify_language(description: str, country: str, locations: LocationsConfig
             # Phrases such as "fluent Finnish is an advantage" contain both
             # proficiency and optionality language. Optionality wins unless a
             # separate hard requirement phrase is present.
-            hard_required = bool(re.search(
-                rf"(?:{lang}.{{0,35}}(?:(?<!not )required|mandatory|must|essential)|(?:must|required to|need to).{{0,55}}{lang})",
-                text,
-            ))
+            hard_required = bool(
+                re.search(
+                    rf"(?:{lang}.{{0,35}}(?:(?<!not )required|mandatory|must|essential)|(?:must|required to|need to).{{0,55}}{lang})",
+                    text,
+                )
+            )
             if hard_required or not optional_match:
                 mandatory_hits.append(language)
     if mandatory_hits:
@@ -154,11 +175,15 @@ def classify_language(description: str, country: str, locations: LocationsConfig
     if optional_hits:
         return LanguageResult("LOCAL_OPTIONAL", f"Local language is optional: {', '.join(optional_hits)}")
     english_explicit = bool(re.search(r"\benglish\b", text))
-    english_text_signals = sum(token in text for token in ("the ", "and ", "you ", "we ", "experience", "skills", "team"))
+    english_text_signals = sum(
+        token in text for token in ("the ", "and ", "you ", "we ", "experience", "skills", "team")
+    )
     if english_explicit:
         return LanguageResult("ENGLISH_COMPATIBLE", "English mentioned and no mandatory local language detected")
     if english_text_signals >= 4:
-        return LanguageResult("ENGLISH_COMPATIBLE", "Posting is in English and no mandatory local language requirement was detected")
+        return LanguageResult(
+            "ENGLISH_COMPATIBLE", "Posting is in English and no mandatory local language requirement was detected"
+        )
     return LanguageResult("UNCLEAR", "Working language could not be established")
 
 

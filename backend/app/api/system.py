@@ -1,9 +1,8 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy import desc, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import rate_limit, require_api_key
-from app.db import get_session
+from app.db import SessionDep
 from app.models import SourceRun
 from app.services.ingestion import ingestion_running
 
@@ -11,7 +10,7 @@ router = APIRouter(prefix="/api/system", tags=["system"], dependencies=[Depends(
 
 
 @router.get("/sources")
-async def source_health(session: AsyncSession = Depends(get_session)) -> dict:
+async def source_health(session: SessionDep) -> dict:
     runs = list((await session.scalars(select(SourceRun).order_by(desc(SourceRun.started_at)).limit(100))).all())
     latest: dict[str, SourceRun] = {}
     for run in runs:
